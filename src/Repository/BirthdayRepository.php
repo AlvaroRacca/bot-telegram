@@ -62,4 +62,11 @@ class BirthdayRepository extends ServiceEntityRepository
         $entityManager->persist($birthday);
         $entityManager->flush();
     }
+
+    public function delete(Birthday $birthday): void
+    {
+        $entityManager = $this->getEntityManager();
+        $entityManager->remove($birthday);
+        $entityManager->flush();
+    }
 }

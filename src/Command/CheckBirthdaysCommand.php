@@ -14,7 +14,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:check-birthdays',
-    description: 'Revisa quién cumple años mañana y envía el recordatorio por Telegram.',
+    description: 'Revisa quién cumple años hoy y mañana, y envía el recordatorio por Telegram.',
 )]
 final class CheckBirthdaysCommand extends Command
 {
@@ -27,22 +27,35 @@ final class CheckBirthdaysCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $birthdays = $this->birthdayService->getBirthdaysForTomorrow();
+        $today = $this->birthdayService->getBirthdaysForToday();
+        $tomorrow = $this->birthdayService->getBirthdaysForTomorrow();
 
-        if ($birthdays === []) {
-            $io->comment('No hay cumpleaños mañana. No se envía nada.');
+        if ($today === [] && $tomorrow === []) {
+            $io->comment('No hay cumpleaños hoy ni mañana. No se envía nada.');
 
-            return Command::SUCCESS;    
-            
+            return Command::SUCCESS;
         }
 
-        $this->birthdayService->notifyTomorrowBirthdays();
+        $this->birthdayService->notifyDailyReminders();
 
         $io->success(sprintf(
-            'Recordatorio enviado por Telegram. Mañana cumple: %s',
-            implode(', ', array_map(static fn (Birthday $birthday): string => $birthday->getName(), $birthdays)),
+            'Recordatorio enviado por Telegram. Hoy: %s. Mañana: %s.',
+            $this->namesOrNone($today),
+            $this->namesOrNone($tomorrow),
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param Birthday[] $birthdays
+     */
+    private function namesOrNone(array $birthdays): string
+    {
+        if ($birthdays === []) {
+            return 'ninguno';
+        }
+
+        return implode(', ', array_map(static fn (Birthday $birthday): string => $birthday->getName(), $birthdays));
     }
 }
