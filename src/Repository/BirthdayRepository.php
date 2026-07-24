@@ -58,6 +58,20 @@ class BirthdayRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Cumpleaños habilitados ordenados por fecha (mes/día), sin importar el año de nacimiento.
+     *
+     * @return Birthday[]
+     */
+    public function findEnabledOrdered(): array
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.enabled = true')
+            ->orderBy('SUBSTRING(b.birthDate, 6, 5)', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function save(Birthday $birthday): void
     {
         $entityManager = $this->getEntityManager();

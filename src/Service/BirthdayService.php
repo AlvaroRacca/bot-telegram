@@ -22,6 +22,8 @@ final class BirthdayService
      */
     private const int PLACEHOLDER_YEAR = 2000;
 
+    private const int UPCOMING_LIMIT = 5;
+
     public function __construct(
         private readonly BirthdayRepository $birthdayRepository,
         private readonly TelegramService $telegramService,
@@ -87,6 +89,55 @@ final class BirthdayService
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Texto con los próximos N cumpleaños (hoy cuenta como próximo), ordenados
+     * por cuánto falta, saltando de diciembre a enero cuando corresponde.
+     */
+    public function upcomingBirthdaysMessage(): string
+    {
+        $birthdays = $this->getUpcomingBirthdays(self::UPCOMING_LIMIT);
+
+        if ($birthdays === []) {
+            return 'No hay cumpleaños registrados.';
+        }
+
+        $lines = ['📅 Próximos cumpleaños', ''];
+
+        foreach ($birthdays as $birthday) {
+            $lines[] = sprintf('• %s — %s', $birthday->getName(), $birthday->getBirthDate()->format('d/m'));
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @return Birthday[]
+     */
+    private function getUpcomingBirthdays(int $limit): array
+    {
+        $birthdays = $this->birthdayRepository->findEnabledOrdered();
+        $today = new \DateTimeImmutable('today');
+
+        usort(
+            $birthdays,
+            fn (Birthday $a, Birthday $b): int => $this->daysUntilNextOccurrence($a->getBirthDate(), $today)
+                <=> $this->daysUntilNextOccurrence($b->getBirthDate(), $today),
+        );
+
+        return \array_slice($birthdays, 0, $limit);
+    }
+
+    private function daysUntilNextOccurrence(\DateTimeImmutable $birthDate, \DateTimeImmutable $today): int
+    {
+        $nextOccurrence = $birthDate->setDate((int) $today->format('Y'), (int) $birthDate->format('m'), (int) $birthDate->format('d'));
+
+        if ($nextOccurrence < $today) {
+            $nextOccurrence = $nextOccurrence->modify('+1 year');
+        }
+
+        return $today->diff($nextOccurrence)->days;
     }
 
     /**

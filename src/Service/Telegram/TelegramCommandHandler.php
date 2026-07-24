@@ -54,6 +54,7 @@ final class TelegramCommandHandler
 
         return match ($parts[0]) {
             '/listar' => $this->birthdayService->listAllMessage(),
+            '/proximos' => $this->birthdayService->upcomingBirthdaysMessage(),
             '/agregar' => $this->handleAdd($parts),
             '/eliminar' => $this->handleDelete($parts),
             default => null,
