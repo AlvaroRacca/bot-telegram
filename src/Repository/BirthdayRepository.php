@@ -46,12 +46,14 @@ class BirthdayRepository extends ServiceEntityRepository
     }
 
     /**
+     * Todos los cumpleaños ordenados por fecha (mes/día), sin importar el año de nacimiento.
+     *
      * @return Birthday[]
      */
     public function findAllOrdered(): array
     {
         return $this->createQueryBuilder('b')
-            ->orderBy('b.name', 'ASC')
+            ->orderBy('SUBSTRING(b.birthDate, 6, 5)', 'ASC')
             ->getQuery()
             ->getResult();
     }
