@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Service\Telegram\TelegramCommandHandler;
 use App\Service\Telegram\TelegramOffsetStorage;
 use App\Service\Telegram\TelegramService;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +15,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 /**
  * Consulta getUpdates, procesa los mensajes nuevos y responde.
@@ -44,6 +44,7 @@ final class TelegramPollCommand extends Command
         private readonly TelegramService $telegramService,
         private readonly TelegramCommandHandler $commandHandler,
         private readonly TelegramOffsetStorage $offsetStorage,
+        private readonly ManagerRegistry $doctrine,
         #[Autowire(env: 'TELEGRAM_CHAT_ID')]
         private readonly string $ownerChatId,
     ) {
@@ -73,8 +74,11 @@ final class TelegramPollCommand extends Command
         while (true) {
             try {
                 $this->processBatch($io, self::LONG_POLL_SECONDS);
-            } catch (TransportExceptionInterface $exception) {
-                $io->warning(sprintf('Fallo de red consultando Telegram: %s', $exception->getMessage()));
+            } catch (\Throwable $exception) {
+                // Proceso de larga duración: una conexión MySQL caída por inactividad
+                // (u otro error puntual de red/API) no debe tirar abajo el worker entero.
+                $io->warning(sprintf('Error procesando updates: %s', $exception->getMessage()));
+                $this->doctrine->getManager()->getConnection()->close();
                 sleep(self::RETRY_DELAY_SECONDS);
             }
         }

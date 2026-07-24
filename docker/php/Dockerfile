@@ -14,12 +14,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-COPY composer.json composer.lock symfony.lock ./
-RUN composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist
-
 COPY . .
 
-RUN composer dump-autoload --optimize --no-dev \
+RUN composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist \
     && mkdir -p var/cache var/log
 
 CMD ["php", "bin/console", "app:telegram:poll", "--loop"]

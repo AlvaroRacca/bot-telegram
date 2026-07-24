@@ -13,15 +13,19 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class BirthdayRepository extends ServiceEntityRepository
 {
+    /**
+     * Extrae "MM-DD" de la columna DATE, ignorando el año de nacimiento
+     * (siempre un placeholder — ver BirthdayService::PLACEHOLDER_YEAR).
+     */
+    private const string MONTH_DAY_DQL = 'SUBSTRING(b.birthDate, 6, 5)';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Birthday::class);
     }
 
     /**
-     * Cumpleaños habilitados que caen en el mes/día de $date, sin importar el año
-     * de nacimiento. Compara solo "MM-DD" via SUBSTRING (función DQL estándar,
-     * sin dependencias extra), así el mismo query sirve todos los años.
+     * Cumpleaños habilitados que caen en el mes/día de $date, sin importar el año de nacimiento.
      *
      * @return Birthday[]
      */
@@ -29,7 +33,7 @@ class BirthdayRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('b')
             ->andWhere('b.enabled = true')
-            ->andWhere('SUBSTRING(b.birthDate, 6, 5) = :monthDay')
+            ->andWhere(self::MONTH_DAY_DQL.' = :monthDay')
             ->setParameter('monthDay', $date->format('m-d'))
             ->orderBy('b.name', 'ASC')
             ->getQuery()
@@ -53,7 +57,7 @@ class BirthdayRepository extends ServiceEntityRepository
     public function findAllOrdered(): array
     {
         return $this->createQueryBuilder('b')
-            ->orderBy('SUBSTRING(b.birthDate, 6, 5)', 'ASC')
+            ->orderBy(self::MONTH_DAY_DQL, 'ASC')
             ->getQuery()
             ->getResult();
     }
@@ -67,7 +71,7 @@ class BirthdayRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('b')
             ->andWhere('b.enabled = true')
-            ->orderBy('SUBSTRING(b.birthDate, 6, 5)', 'ASC')
+            ->orderBy(self::MONTH_DAY_DQL, 'ASC')
             ->getQuery()
             ->getResult();
     }

@@ -116,6 +116,10 @@ final class TelegramCommandHandler
 
     private function handleNameReply(string $name): string
     {
+        if (trim($name) === '') {
+            return 'Decime un nombre válido.';
+        }
+
         $this->conversationState->save(['step' => self::STEP_AWAITING_DATE, 'name' => $name]);
 
         return 'Decime la fecha de nacimiento (dd/mm).';
@@ -130,6 +134,10 @@ final class TelegramCommandHandler
 
     private function askDeleteConfirmation(string $name): string
     {
+        if (trim($name) === '') {
+            return 'Decime un nombre válido.';
+        }
+
         if (!$this->birthdayService->birthdayExists($name)) {
             $this->conversationState->clear();
 
